@@ -13,7 +13,6 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
     <!-- Styles -->
     <style>
         /* Custom scrollbar for webkit browsers */
@@ -44,7 +43,7 @@
                x-transition:leave="transition ease-in duration-300" x-transition:leave-start="translate-x-0"
                x-transition:leave-end="-translate-x-full"
                class="fixed inset-y-0 left-0 z-30 w-64 bg-emerald-700 text-white flex flex-col custom-scrollbar overflow-y-auto transform lg:translate-x-0 lg:static lg:inset-0">
-            
+
             <!-- Logo -->
             <div class="flex items-center justify-center h-20 border-b border-emerald-600 flex-shrink-0">
                 <img src="{{ asset('images/icon/sidebar-logo.svg') }}" alt="GreenPort Logo" class="h-12 w-12 bg-white rounded-full border border-white">
@@ -225,7 +224,7 @@
                 <button @click="sidebarOpen = !sidebarOpen" class="lg:hidden text-gray-500 focus:outline-none">
                     <img class="h-6 w-6" src="{{ asset('images/icon/hamburger-icon.svg') }}" alt="Hamburger Icon">
                 </button>
-                
+
                 <!-- Placeholder for search or other header content on the left -->
                 <div></div>
 
@@ -253,7 +252,7 @@
                              class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
                             <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
                             <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Pengaturan Akun</a>
-                            
+
                             Logout Form
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
@@ -277,7 +276,7 @@
                                 <p class="font-bold">Sukses</p>
                                 <p class="text-sm">{{ session('success') }}</p>
                             </div>
-                            <button @click="show = false" class="ml-auto text-green-700 hover:text-green-900
+                            <button @click="show = false" class="ml-auto text-green-700 hover:text-green-900>
                                 &times;
                             </button>
                         </div>
@@ -301,5 +300,7 @@
         </div>
     </div>
     @stack('scripts')
+
+
 </body>
 </html>

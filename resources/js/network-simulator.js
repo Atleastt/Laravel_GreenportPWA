@@ -1,4 +1,4 @@
-/**
+n/**
  * Network Condition Simulator
  * Simulates 300 Kbps with random disconnections for testing
  */
@@ -19,7 +19,7 @@ class NetworkSimulator {
     startIntermittentSimulation() {
         this.isSimulating = true;
         console.log('🌐 Starting intermittent 300 Kbps simulation');
-        
+
         // Simulate random disconnections
         this.disconnectionInterval = setInterval(() => {
             if (Math.random() < this.disconnectionChance) {
@@ -38,11 +38,11 @@ class NetworkSimulator {
     stopSimulation() {
         this.isSimulating = false;
         this.isConnected = true;
-        
+
         if (this.disconnectionInterval) {
             clearInterval(this.disconnectionInterval);
         }
-        
+
         if (this.reconnectionTimeout) {
             clearTimeout(this.reconnectionTimeout);
         }
@@ -61,7 +61,7 @@ class NetworkSimulator {
      */
     simulateDisconnection() {
         if (!this.isConnected) return;
-        
+
         this.isConnected = false;
         console.log('📡 Simulated disconnection');
         this.notifyListeners('disconnected');
@@ -83,16 +83,16 @@ class NetworkSimulator {
         }
 
         const startTime = Date.now();
-        
+
         try {
             const response = await this.originalFetch(url, options);
-            
+
             // Simulate 300 Kbps speed for uploads
             if (options.method === 'POST' && options.body instanceof FormData) {
                 const fileSize = this.estimateFormDataSize(options.body);
                 const minTime = (fileSize * 8) / (this.connectionSpeed * 1024); // Convert to seconds
                 const elapsed = (Date.now() - startTime) / 1000;
-                
+
                 if (elapsed < minTime) {
                     await this.delay((minTime - elapsed) * 1000);
                 }

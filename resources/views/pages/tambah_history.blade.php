@@ -9,7 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900
-                    <form action="#" method="POST" class="space-y-6">
+                    <form action="#"" method="POST" class="space-y-6">
                         @csrf
 
                         <!-- Judul Peristiwa -->
@@ -78,7 +78,7 @@
                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm">
             </div>
         </div>
-        
+
         <div>
             <label for="indicator_history" class="block text-sm font-medium text-gray-700">Indikator</label>
             <input type="text" id="indicator_history" x-model="newItem.indicator" placeholder="Indikator yang diaudit"
@@ -170,7 +170,7 @@
         <a href="{{ route('history') }}" class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
             Batal & Kembali
         </a>
-        <button type="button" @click="if(items.length > 0) { alert('Menyimpan ' + items.length + ' item transaksi history... (implementasi simpan ke db)'); items=[]; } else { alert('Tidak ada item untuk disimpan.'); }" 
+        <button type="button" @click="if(items.length > 0) { alert('Menyimpan ' + items.length + ' item transaksi history... (implementasi simpan ke db)'); items=[]; } else { alert('Tidak ada item untuk disimpan.'); }"
                 :disabled="items.length === 0"
                 :class="{ 'opacity-50 cursor-not-allowed': items.length === 0 }"
                 class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2 rounded-md shadow-sm text-sm">
@@ -178,4 +178,4 @@
         </button>
     </div>
 </div>
-@endsection 
+@endsection

@@ -70,39 +70,39 @@ Route::middleware([
 
     // CRUD Indikator
     Route::resource('indikator', IndikatorController::class)->middleware('role:Auditor');
-    
+
     // Rute untuk data dashboard auditor
     Route::get('/dashboard/auditor/stats', [DashboardAuditorController::class, 'getStats'])->name('dashboard.auditor.stats');
-    
+
     // Rute untuk pelaporan
     Route::get('/pelaporan', [LaporanController::class, 'index'])->name('pelaporan.index');
     Route::get('/laporan/create/{audit}', [LaporanController::class, 'create'])->name('laporan.create');
     Route::post('/laporan', [LaporanController::class, 'store'])->name('laporan.store');
-    
+
     // Rute untuk riwayat audit
     Route::get('/history', [AuditController::class, 'history'])->name('history.index');
     Route::get('/history/{audit}/report', [AuditController::class, 'showReport'])->name('history.report');
-    
+
     // Rute untuk indikator dokumen
     Route::resource('indikator-dokumen', IndikatorDokumenController::class);
-    
+
     // Rute untuk visitasi lapangan
     Route::resource('visitasi-lapangan', VisitasiLapanganController::class);
-    
+
     // Rute untuk bukti pendukung
     Route::resource('bukti-pendukung', BuktiPendukungController::class);
-    
+
     // Rute untuk notifikasi
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
-    
+
     // Rute untuk test upload dokumen
     Route::get('/test-upload', [DocumentUploadTestController::class, 'index'])->name('test.upload');
     Route::post('/test-upload', [DocumentUploadTestController::class, 'store'])->name('test.upload.store');
-    
+
     // API route for network testing
     Route::post('/api/test-upload', [DocumentUploadTestController::class, 'apiUpload'])->name('api.test.upload');
-    
+
     Route::view('laporan-audit-contoh', 'pages.laporan_audit_contoh')->name('laporan.audit.contoh');
     Route::view('forget-password-page', 'pages.forget_password')->name('forget.password.page');
     Route::view('tambah-dokumen', 'pages.tambah_dokumen')->name('tambah.dokumen');
@@ -119,7 +119,7 @@ Route::middleware([
     Route::view('hasil-penilaian', 'pages.hasil_penilaian')->name('hasil.penilaian');
     Route::view('visitasi-lapangan', 'pages.visitasi_lapangan')->name('visitasi.lapangan');
     Route::view('bukti-pendukung', 'pages.bukti_pendukung')->name('bukti.pendukung');
-    
+
     // Notification Routes
     Route::prefix('notifikasi')->name('notifikasi.')->middleware('role:Auditor|Auditee')->group(function () {
         Route::get('/', [App\Http\Controllers\NotificationController::class, 'index'])->name('index');
@@ -127,7 +127,7 @@ Route::middleware([
         Route::patch('/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
         Route::delete('/{id}', [App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
     });
-    
+
     Route::view('regulasi', 'pages.regulasi')->middleware('role:Auditor|Auditee')->name('regulasi');
     Route::view('forum', 'pages.forum')->middleware('role:Auditor|Auditee')->name('forum');
     Route::view('sertifikasi', 'pages.sertifikasi')->middleware('role:Auditor|Auditee')->name('sertifikasi');
@@ -261,12 +261,12 @@ Route::middleware([
         Route::patch('rekomendasi/{rekomendasi}', [App\Http\Controllers\RekomendasiController::class, 'update'])->name('rekomendasi.update');
         Route::delete('rekomendasi/{rekomendasi}', [App\Http\Controllers\RekomendasiController::class, 'destroy'])->name('rekomendasi.destroy');
         Route::patch('rekomendasi/{rekomendasi}/status', [App\Http\Controllers\RekomendasiController::class, 'updateStatus'])->name('rekomendasi.update-status');
-        
+
         // Pages specific route for auditor view
         Route::get('pages/rekomendasi-auditor', [App\Http\Controllers\RekomendasiController::class, 'auditorView'])->name('pages.rekomendasi_auditor');
     });
 
-    // Tindak Lanjut Routes  
+    // Tindak Lanjut Routes
     Route::middleware('role:Auditor|Auditee')->group(function () {
         Route::get('tindak-lanjut', [App\Http\Controllers\TindakLanjutController::class, 'index'])->name('tindak-lanjut.index');
         Route::get('tindak-lanjut/create', [App\Http\Controllers\TindakLanjutController::class, 'create'])->name('tindak-lanjut.create');

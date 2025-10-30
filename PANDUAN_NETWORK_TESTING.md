@@ -299,12 +299,12 @@ Overall:          46-54/90 (51-60%)
 ```
 
 ### Performance Metrics
-| Metric | Stable | Offline | Intermittent |
-|--------|--------|---------|--------------|
-| **Avg Duration** | 1-2s | <100ms | 3-5s |
-| **Success Rate** | 95-100% | 0% | 60-80% |
-| **Timeout Rate** | <1% | 0% | 10-15% |
-| **Error Types** | Validation | Connection | Disconnection |
+| Metric           | Stable     | Offline    | Intermittent  |
+|------------------|------------|------------|---------------|
+| **Avg Duration** | 1-2s       | <100ms     | 3-5s          |
+| **Success Rate** | 95-100%    | 0%         | 60-80%        |
+| **Timeout Rate** | <1% | 0%   | 10-15%     |               |
+| **Error Types**  | Validation | Connection | Disconnection |
 
 ### Web UI Dashboard
 ```

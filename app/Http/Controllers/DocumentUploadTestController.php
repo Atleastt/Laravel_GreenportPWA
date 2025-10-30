@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use GuzzleHttp\Client;
+use GuzzleHttp\Promise;
 
 class DocumentUploadTestController extends Controller
 {
@@ -16,6 +18,7 @@ class DocumentUploadTestController extends Controller
      */
     public function index()
     {
+        $this->middleware('auth'); // Ensure auth
         $temuans = Temuan::all();
         return view('pages.test_upload', compact('temuans'));
     }
@@ -25,6 +28,7 @@ class DocumentUploadTestController extends Controller
      */
     public function upload2MB(Request $request)
     {
+        $this->middleware('auth');
         return $this->uploadWithLimit($request, 2048, '2MB');
     }
 
@@ -33,6 +37,7 @@ class DocumentUploadTestController extends Controller
      */
     public function upload5MB(Request $request)
     {
+        $this->middleware('auth');
         return $this->uploadWithLimit($request, 5120, '5MB');
     }
 
@@ -41,6 +46,7 @@ class DocumentUploadTestController extends Controller
      */
     public function upload10MB(Request $request)
     {
+        $this->middleware('auth');
         return $this->uploadWithLimit($request, 10240, '10MB');
     }
 
@@ -49,6 +55,7 @@ class DocumentUploadTestController extends Controller
      */
     public function upload50MB(Request $request)
     {
+        $this->middleware('auth');
         return $this->uploadWithLimit($request, 51200, '50MB');
     }
 
@@ -57,10 +64,15 @@ class DocumentUploadTestController extends Controller
      */
     private function uploadWithLimit(Request $request, int $maxSizeKB, string $limitLabel)
     {
+        if (!Auth::check()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
         $startTime = microtime(true);
+        $cpuStart = getrusage();
         $isOnline = $this->checkInternetConnection();
         $memoryBefore = memory_get_usage(true);
-        
+
         try {
             $request->validate([
                 'temuan_id' => 'required|exists:temuans,id',
@@ -83,11 +95,11 @@ class DocumentUploadTestController extends Controller
             ]);
 
             // Simulate network delay for testing
-            if (request()->has('simulate_slow_network')) {
+            if ($request->has('simulate_slow_network')) {
                 sleep(2); // 2 second delay
             }
 
-            $filePath = $file->store('public/bukti_pendukung');
+            $filePath = $file->store('public/uploads/test');
 
             $bukti = Bukti::create([
                 'temuan_id' => $request->temuan_id,
@@ -98,12 +110,14 @@ class DocumentUploadTestController extends Controller
             ]);
 
             $endTime = microtime(true);
+            $cpuEnd = getrusage();
             $uploadTime = round($endTime - $startTime, 2);
+            $cpuTime = round(($cpuEnd['ru_utime.tv_sec'] - $cpuStart['ru_utime.tv_sec']) + ($cpuEnd['ru_utime.tv_usec'] - $cpuStart['ru_utime.tv_usec']) / 1000000, 4);
             $memoryAfter = memory_get_usage(true);
             $memoryUsed = $memoryAfter - $memoryBefore;
 
             // Simulate offline mode response
-            if (request()->has('simulate_offline')) {
+            if ($request->has('simulate_offline')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Upload disimpan offline untuk disinkronkan nanti',
@@ -111,10 +125,12 @@ class DocumentUploadTestController extends Controller
                     'data' => [
                         'file_size_mb' => $fileSizeMB,
                         'upload_time_seconds' => $uploadTime,
+                        'cpu_time_seconds' => $cpuTime,
                         'limit' => $limitLabel,
                         'online_status' => 'Offline (Simulated)',
                         'memory_used_bytes' => $memoryUsed,
                         'saved_offline' => true,
+                        'timestamp' => now()->toISOString(),
                     ]
                 ]);
             }
@@ -125,6 +141,7 @@ class DocumentUploadTestController extends Controller
                 'data' => [
                     'file_size_mb' => $fileSizeMB,
                     'upload_time_seconds' => $uploadTime,
+                    'cpu_time_seconds' => $cpuTime,
                     'limit' => $limitLabel,
                     'online_status' => $isOnline ? 'Online' : 'Offline',
                     'bukti_id' => $bukti->id,
@@ -140,13 +157,13 @@ class DocumentUploadTestController extends Controller
             $uploadTime = round($endTime - $startTime, 2);
             $memoryAfter = memory_get_usage(true);
             $memoryUsed = $memoryAfter - $memoryBefore;
-            
+
             Log::warning("Upload validation failed - Limit: $limitLabel", [
                 'errors' => $e->errors(),
                 'upload_time' => $uploadTime,
                 'memory_used' => $memoryUsed,
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => "Upload gagal dengan limit $limitLabel",
@@ -165,14 +182,14 @@ class DocumentUploadTestController extends Controller
             $uploadTime = round($endTime - $startTime, 2);
             $memoryAfter = memory_get_usage(true);
             $memoryUsed = $memoryAfter - $memoryBefore;
-            
+
             Log::error("Upload error - Limit: $limitLabel", [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'upload_time' => $uploadTime,
                 'memory_used' => $memoryUsed,
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => "Terjadi kesalahan: " . $e->getMessage(),
@@ -195,12 +212,12 @@ class DocumentUploadTestController extends Controller
         try {
             $handle = curl_init('http://www.google.com');
             curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($handle, CURLOPT_TIMEOUT, 5);
-            curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($handle, CURLOPT_TIMEOUT, 3); // Reduced for faster test
+            curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, 3);
             $result = curl_exec($handle);
             $httpCode = curl_getinfo($handle, CURLINFO_HTTP_CODE);
             curl_close($handle);
-            
+
             return $httpCode >= 200 && $httpCode < 400;
         } catch (\Exception $e) {
             return false;
@@ -212,6 +229,7 @@ class DocumentUploadTestController extends Controller
      */
     public function getTestResults()
     {
+        $this->middleware('auth');
         $results = Bukti::where('nama_dokumen', 'LIKE', '%Test%')
                         ->with('temuan')
                         ->latest()
@@ -229,9 +247,10 @@ class DocumentUploadTestController extends Controller
      */
     public function clearTestData()
     {
+        $this->middleware('auth');
         try {
             $testBuktis = Bukti::where('nama_dokumen', 'LIKE', '%Test%')->get();
-            
+
             foreach ($testBuktis as $bukti) {
                 // Delete file from storage
                 if (Storage::exists($bukti->file_path)) {
@@ -260,6 +279,7 @@ class DocumentUploadTestController extends Controller
      */
     public function runAutomatedTests(Request $request)
     {
+        $this->middleware('auth');
         $request->validate([
             'temuan_id' => 'required|exists:temuans,id',
             'include_offline_test' => 'boolean',
@@ -276,24 +296,30 @@ class DocumentUploadTestController extends Controller
         foreach ($testSizes as $label => $sizeKB) {
             try {
                 // Create test file with appropriate size
-                $testFileName = "auto_test_{$label}_" . time() . ".pdf";
+                $testFileName = "auto_test_{$label}_" . time() . ".txt"; // Changed to .txt for simplicity
                 $testFileContent = str_repeat('A', $sizeKB * 1024); // Fill with 'A' characters
                 $tempFile = tmpfile();
                 fwrite($tempFile, $testFileContent);
+                rewind($tempFile); // Ensure readable
                 $tempFilePath = stream_get_meta_data($tempFile)['uri'];
+
+                // Check if file is valid
+                if (filesize($tempFilePath) !== strlen($testFileContent)) {
+                    throw new \Exception('Failed to create test file of correct size');
+                }
 
                 // Simulate file upload
                 $uploadedFile = new \Illuminate\Http\UploadedFile(
                     $tempFilePath,
                     $testFileName,
-                    'application/pdf',
+                    'text/plain', // Simple mime
                     null,
                     true
                 );
 
                 $testRequest = new Request([
                     'temuan_id' => $request->temuan_id,
-                    'nama_dokumen' => "Automated Test {$label}",
+                    'nama_dokumen' => "Automated Test {$label}", // Fixed validation
                 ]);
                 $testRequest->files->set('file', $uploadedFile);
 
@@ -301,6 +327,7 @@ class DocumentUploadTestController extends Controller
                 $results[$label] = json_decode($result->getContent(), true);
 
                 fclose($tempFile);
+                unset($tempFile); // Extra cleanup
 
             } catch (\Exception $e) {
                 $results[$label] = [
@@ -345,12 +372,13 @@ class DocumentUploadTestController extends Controller
             $testFileContent = str_repeat('B', 1024 * 512); // 512KB
             $tempFile = tmpfile();
             fwrite($tempFile, $testFileContent);
+            rewind($tempFile);
             $tempFilePath = stream_get_meta_data($tempFile)['uri'];
 
             $uploadedFile = new \Illuminate\Http\UploadedFile(
                 $tempFilePath,
-                'offline_test.pdf',
-                'application/pdf',
+                'offline_test.txt',
+                'text/plain',
                 null,
                 true
             );
@@ -364,6 +392,7 @@ class DocumentUploadTestController extends Controller
 
             $result = $this->uploadWithLimit($testRequest, 2048, 'Offline');
             fclose($tempFile);
+            unset($tempFile);
 
             return json_decode($result->getContent(), true);
 
@@ -385,12 +414,15 @@ class DocumentUploadTestController extends Controller
             'successful_tests' => 0,
             'failed_tests' => 0,
             'average_upload_time' => 0,
+            'average_cpu_time' => 0,
             'total_data_processed_mb' => 0,
             'memory_usage_stats' => [],
         ];
 
         $totalTime = 0;
+        $totalCpu = 0;
         $timeCount = 0;
+        $cpuCount = 0;
 
         foreach ($results as $test => $result) {
             if ($result['success']) {
@@ -404,8 +436,13 @@ class DocumentUploadTestController extends Controller
                 $timeCount++;
             }
 
+            if (isset($result['data']['cpu_time_seconds'])) {
+                $totalCpu += $result['data']['cpu_time_seconds'];
+                $cpuCount++;
+            }
+
             if (isset($result['data']['file_size_mb'])) {
-                $summary['total_data_processed_mb'] += $result['data']['file_size_mb'];
+                $summary['total_data_processed_mb'] += round($result['data']['file_size_mb'], 2);
             }
 
             if (isset($result['data']['memory_used_bytes'])) {
@@ -417,6 +454,10 @@ class DocumentUploadTestController extends Controller
             $summary['average_upload_time'] = round($totalTime / $timeCount, 2);
         }
 
+        if ($cpuCount > 0) {
+            $summary['average_cpu_time'] = round($totalCpu / $cpuCount, 4);
+        }
+
         return $summary;
     }
 
@@ -425,6 +466,7 @@ class DocumentUploadTestController extends Controller
      */
     public function getSystemInfo()
     {
+        $this->middleware('auth');
         return response()->json([
             'success' => true,
             'system_info' => [
@@ -443,51 +485,65 @@ class DocumentUploadTestController extends Controller
     }
 
     /**
-     * Test concurrent uploads
+     * Test concurrent uploads using async Guzzle requests
      */
     public function testConcurrentUploads(Request $request)
     {
+        $this->middleware('auth');
         $request->validate([
             'temuan_id' => 'required|exists:temuans,id',
-            'concurrent_count' => 'integer|min:2|max:5',
+            'concurrent_count' => 'integer|min:2|max:10', // Increased max for better testing
         ]);
 
         $concurrentCount = $request->input('concurrent_count', 3);
         $results = [];
         $startTime = microtime(true);
 
+        $client = new Client(['base_uri' => url('/'), 'timeout' => 30]);
+        $promises = [];
+
         for ($i = 1; $i <= $concurrentCount; $i++) {
-            try {
-                // Create small test files for concurrent testing
-                $testFileContent = str_repeat("File{$i}", 1024 * 256); // 256KB each
-                $tempFile = tmpfile();
-                fwrite($tempFile, $testFileContent);
-                $tempFilePath = stream_get_meta_data($tempFile)['uri'];
+            // Prepare multipart form data for each request
+            $multipart = [
+                [
+                    'name' => 'temuan_id',
+                    'contents' => $request->temuan_id,
+                ],
+                [
+                    'name' => 'nama_dokumen',
+                    'contents' => "Concurrent Test {$i}",
+                ],
+                [
+                    'name' => 'file',
+                    'contents' => str_repeat("File{$i}", 1024 * 256), // 256KB content
+                    'filename' => "concurrent_test_{$i}.txt",
+                    'headers' => ['Content-Type' => 'text/plain'],
+                ],
+            ];
 
-                $uploadedFile = new \Illuminate\Http\UploadedFile(
-                    $tempFilePath,
-                    "concurrent_test_{$i}.pdf",
-                    'application/pdf',
-                    null,
-                    true
-                );
+            $promises[$i] = $client->postAsync("test/upload2MB", ['multipart' => $multipart, 'http_errors' => false])
+                ->then(function ($response) use ($i) {
+                    return [
+                        "upload_{$i}" => json_decode($response->getBody()->getContents(), true)
+                    ];
+                })
+                ->otherwise(function ($reason) use ($i) {
+                    return [
+                        "upload_{$i}" => [
+                            'success' => false,
+                            'message' => 'Concurrent test failed: ' . $reason->getMessage(),
+                        ]
+                    ];
+                });
+        }
 
-                $testRequest = new Request([
-                    'temuan_id' => $request->temuan_id,
-                    'nama_dokumen' => "Concurrent Test {$i}",
-                ]);
-                $testRequest->files->set('file', $uploadedFile);
-
-                $result = $this->uploadWithLimit($testRequest, 2048, "Concurrent{$i}");
-                $results["upload_{$i}"] = json_decode($result->getContent(), true);
-
-                fclose($tempFile);
-
-            } catch (\Exception $e) {
-                $results["upload_{$i}"] = [
-                    'success' => false,
-                    'message' => 'Concurrent test failed: ' . $e->getMessage(),
-                ];
+        // Wait for all promises
+        $responses = Promise\settle($promises)->wait();
+        foreach ($responses as $i => $response) {
+            if ($response['state'] === 'fulfilled') {
+                $results = array_merge($results, $response['value']);
+            } else {
+                $results = array_merge($results, $response['reason']);
             }
         }
 
@@ -509,6 +565,7 @@ class DocumentUploadTestController extends Controller
      */
     public function apiUpload(Request $request)
     {
+        $this->middleware('auth');
         try {
             $request->validate([
                 'file' => 'required|file|max:10240', // 10MB max
@@ -530,14 +587,14 @@ class DocumentUploadTestController extends Controller
                 sleep(2);
             }
 
-            // Store the file
-            $path = $file->store('uploads/test', 'public');
+            // Store the file (unified path)
+            $path = $file->store('public/uploads/test');
 
             $endTime = microtime(true);
             $uploadTime = round($endTime - $startTime, 2);
 
             // Check if user is auditee for offline mode support
-            $isAuditee = Auth::user() && Auth::user()->hasRole('Auditee');
+            $isAuditee = Auth::user()->hasRole('Auditee');
             $connectionStatus = $this->checkInternetConnection();
 
             return response()->json([
