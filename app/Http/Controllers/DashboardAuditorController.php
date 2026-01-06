@@ -11,7 +11,7 @@ class DashboardAuditorController extends Controller
     public function index(): View
     {
         $indikators = \App\Models\Indikator::with('subkriteria.kriteria')->get();
-        
+
         // Jika tidak ada indikator, buat data dummy untuk demo
         if ($indikators->isEmpty()) {
             $indikators = collect([
@@ -41,7 +41,7 @@ class DashboardAuditorController extends Controller
                 ]
             ]);
         }
-        
+
         $chartData = $this->prepareChartData($indikators);
 
         // Line chart: ambil data dokumen diaudit per bulan dari database
@@ -100,12 +100,12 @@ class DashboardAuditorController extends Controller
         foreach ($statuses as $status) {
             $counts[] = \App\Models\Bukti::where('status', $status)->count();
         }
-        
+
         // Add some default data if no bukti exist
         if (array_sum($counts) === 0) {
             $counts = [15, 8, 3];
         }
-        
+
         return [
             'labels' => $statuses,
             'datasets' => [[

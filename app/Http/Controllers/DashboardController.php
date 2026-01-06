@@ -22,16 +22,16 @@ class DashboardController extends Controller
         if ($user->hasRole('Auditor')) {
             // Untuk Auditor, tampilkan dashboard auditor dengan tabel indikator
             $indikators = Indikator::with('subkriteria.kriteria')->get();
-            
+
             // Get real dashboard statistics
             $dashboardStats = $this->getDashboardStats($user);
-            
+
             $chartData = $this->prepareChartData($indikators);
-            
+
             // Get additional data for charts
             $lineChartData = $this->getLineChartData();
             $doughnutChartData = $this->getDoughnutChartData();
-            
+
             return view('pages.dashboard_auditor', [
                 'indikators' => $indikators,
                 'dashboardStats' => $dashboardStats,
@@ -46,17 +46,17 @@ class DashboardController extends Controller
             $upcomingAudits = \App\Models\Audit::where('auditee_id', $user->id)
                 ->where('status', 'Scheduled')
                 ->count();
-                
+
             $pendingDocuments = \App\Models\Audit::where('auditee_id', $user->id)
                 ->join('audit_criteria', 'audits.id', '=', 'audit_criteria.audit_id')
                 ->where('audit_criteria.status', 'Open')
                 ->count();
-                
+
             $openFindings = \App\Models\Audit::where('auditee_id', $user->id)
                 ->join('audit_criteria', 'audits.id', '=', 'audit_criteria.audit_id')
                 ->where('audit_criteria.status', 'Open')
                 ->count();
-            
+
             return view('pages.dashboard_auditee', compact('upcomingAudits', 'pendingDocuments', 'openFindings'));
         }
 
@@ -92,7 +92,7 @@ class DashboardController extends Controller
     private function getLineChartData()
     {
         $currentUser = Auth::user();
-        
+
         // Get audit data per month from database using SQLite compatible functions
         // Only get audits for the current auditor
         $data = \App\Models\Audit::selectRaw('CAST(strftime("%m", created_at) as INTEGER) as month, COUNT(*) as total')
@@ -125,7 +125,7 @@ class DashboardController extends Controller
     private function getDoughnutChartData()
     {
         $currentUser = Auth::user();
-        
+
         // Get audit status data from database for current auditor
         $statuses = ['Scheduled', 'InProgress', 'Completed', 'Revising'];
         $counts = [];
@@ -134,7 +134,7 @@ class DashboardController extends Controller
                 ->where('status', $status)
                 ->count();
         }
-        
+
         return [
             'labels' => ['Dijadwalkan', 'Sedang Berjalan', 'Selesai', 'Revisi'],
             'datasets' => [[
@@ -155,45 +155,45 @@ class DashboardController extends Controller
     {
         $currentYear = date('Y');
         $currentMonth = date('m');
-        
+
         // Get total audits assigned to this auditor
         $totalAudits = \App\Models\Audit::where('auditor_id', $user->id)->count();
-        
+
         // Get audits by status
         $completedAudits = \App\Models\Audit::where('auditor_id', $user->id)
             ->where('status', 'Completed')
             ->count();
-            
+
         $ongoingAudits = \App\Models\Audit::where('auditor_id', $user->id)
             ->where('status', 'InProgress')
             ->count();
-            
+
         $scheduledAudits = \App\Models\Audit::where('auditor_id', $user->id)
             ->where('status', 'Scheduled')
             ->count();
-        
+
         // Get total indicators
         $totalIndikators = \App\Models\Indikator::count();
-        
+
         // Get audits this month
         $auditsThisMonth = \App\Models\Audit::where('auditor_id', $user->id)
             ->whereRaw('strftime("%Y", created_at) = ?', [$currentYear])
             ->whereRaw('strftime("%m", created_at) = ?', [$currentMonth])
             ->count();
-        
+
         // Get pending documents/findings
         $pendingFindings = \App\Models\Audit::where('auditor_id', $user->id)
             ->join('audit_criteria', 'audits.id', '=', 'audit_criteria.audit_id')
             ->where('audit_criteria.status', 'Open')
             ->count();
-        
+
         // Get recent audits with full details
         $recentAudits = \App\Models\Audit::where('auditor_id', $user->id)
             ->with(['auditee'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
-        
+
         // Get audits due soon (within 7 days)
         $auditsDueSoon = \App\Models\Audit::where('auditor_id', $user->id)
             ->where('status', 'Scheduled')
@@ -202,13 +202,13 @@ class DashboardController extends Controller
             ->with(['auditee'])
             ->orderBy('scheduled_start_date')
             ->get();
-        
+
         // Get overdue audits
         $overdueAudits = \App\Models\Audit::where('auditor_id', $user->id)
             ->where('status', 'Scheduled')
             ->where('scheduled_start_date', '<', now())
             ->count();
-        
+
         return [
             'totalAudits' => $totalAudits,
             'completedAudits' => $completedAudits,
